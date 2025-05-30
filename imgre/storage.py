@@ -284,6 +284,20 @@ class S3Storage:
         content_type = ImageProcessor.get_content_type(format)
         return self.upload_bytes(processed_data, target_key, content_type=content_type)
 
+    def delete_object(self, object_key: str) -> None:
+        """
+        Delete an object from S3.
+
+        Args:
+            object_key: S3 object key to delete
+        """
+        try:
+            self.s3_client.delete_object(Bucket=self.bucket, Key=object_key)
+            logger.info(f"Deleted object from S3: {object_key}")
+        except ClientError as e:
+            logger.error(f"Error deleting object from S3: {e}")
+            raise
+
     def list_objects(
         self,
         prefix: Optional[str] = None,

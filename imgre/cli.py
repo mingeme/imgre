@@ -12,6 +12,7 @@ import click
 from imgre.config import load_config, validate_config
 from imgre.image import ImageProcessor
 from imgre.storage import S3Storage
+from imgre.ui import run_ui
 
 # Configure logging
 logging.basicConfig(
@@ -253,6 +254,21 @@ def list_objects(
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+@cli.command("ui")
+def ui():
+    """
+    Launch the S3 browser UI.
+    
+    Interactive TUI for browsing and managing S3 objects.
+    """
+    try:
+        run_ui()
+    except Exception as e:
+        click.echo(f"Error launching UI: {e}", err=True)
+        sys.exit(1)
+
 
 def main():
     """

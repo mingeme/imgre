@@ -19,6 +19,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "tomli>=2.0.0; python_version < '3.11'",
     "mypy-boto3-s3>=1.28.0",
+    "textual>=0.52.1",
 ]
 
 [project.scripts]
