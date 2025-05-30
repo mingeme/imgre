@@ -2,14 +2,12 @@
 Command-line interface for imgre.
 """
 
-import os
 import sys
 import logging
 from pathlib import Path
 from typing import Optional
 
 import click
-from PIL import Image
 
 from imgre.config import load_config, validate_config
 from imgre.image import ImageProcessor

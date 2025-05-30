@@ -14,7 +14,27 @@ A Python port of the [imgood](https://github.com/mingeme/imgood) project, provid
 ## Prerequisites
 
 * Python 3.8 or later
-* Pillow library for image processing
+* libvips 8.10+ (required by pyvips)
+
+### Installing libvips
+
+#### macOS
+
+```bash
+brew install vips
+```
+
+#### Ubuntu/Debian
+
+```bash
+apt-get install libvips-dev
+```
+
+#### CentOS/RHEL
+
+```bash
+yum install vips-devel
+```
 
 ## Installation
 

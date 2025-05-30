@@ -1,20 +1,27 @@
 """
 Image processing module for imgre.
-Handles image resizing, compression, and format conversion.
+Handles image resizing, compression, and format conversion using libvips.
 """
 
 import io
+import os
+import pyvips
 from pathlib import Path
-from typing import Optional, Tuple, Union, BinaryIO
+from typing import Optional, Tuple, Union, BinaryIO, Dict, Any
 
-from PIL import Image
-
-# Mapping of format names to PIL format strings
+# Mapping of format names to libvips format strings
 FORMAT_MAP = {
-    "webp": "WEBP",
-    "jpeg": "JPEG",
-    "jpg": "JPEG",
-    "png": "PNG",
+    "webp": "webp",
+    "jpeg": "jpg",
+    "jpg": "jpg",
+    "png": "png",
+}
+
+# Mapping of resize modes to libvips resize operations
+RESIZE_MAP = {
+    "fit": "contain",  # Resize to fit within dimensions
+    "fill": "cover",   # Resize to fill dimensions (may crop)
+    "exact": "force",  # Resize to exact dimensions (may distort)
 }
 
 class ImageProcessor:
@@ -23,15 +30,15 @@ class ImageProcessor:
     """
     
     @staticmethod
-    def open_image(image_path: Union[str, Path]) -> Image.Image:
+    def open_image(image_path: Union[str, Path]) -> pyvips.Image:
         """
-        Open an image file and return a PIL Image object.
+        Open an image file and return a pyvips Image object.
         """
-        return Image.open(image_path)
+        return pyvips.Image.new_from_file(str(image_path))
     
     @staticmethod
     def process_image(
-        img: Image.Image,
+        img: pyvips.Image,
         width: Optional[int] = None,
         height: Optional[int] = None,
         format: str = "webp",
@@ -42,7 +49,7 @@ class ImageProcessor:
         Process an image with the specified parameters.
         
         Args:
-            img: PIL Image object
+            img: pyvips Image object
             width: Target width (None to maintain aspect ratio)
             height: Target height (None to maintain aspect ratio)
             format: Output format (webp, jpeg, png)
@@ -52,56 +59,62 @@ class ImageProcessor:
         Returns:
             Processed image as bytes
         """
-        # Create a copy to avoid modifying the original
-        img = img.copy()
-        
         # Normalize format
         format = format.lower()
         if format not in FORMAT_MAP:
             raise ValueError(f"Unsupported format: {format}")
-        pil_format = FORMAT_MAP[format]
+        vips_format = FORMAT_MAP[format]
         
         # Resize if dimensions are provided
         if width or height:
             img = ImageProcessor.resize_image(img, width, height, resize_mode)
         
-        # Save to bytes buffer
-        buffer = io.BytesIO()
+        # Prepare save options based on format
+        save_options = {}
         
-        # Save with appropriate options
-        if pil_format == "JPEG":
-            img = img.convert("RGB")  # JPEG doesn't support alpha channel
-            img.save(buffer, format=pil_format, quality=quality, optimize=True)
-        elif pil_format == "PNG":
-            img.save(buffer, format=pil_format, optimize=True)
-        elif pil_format == "WEBP":
-            img.save(buffer, format=pil_format, quality=quality, method=4)
-        else:
-            img.save(buffer, format=pil_format)
+        if vips_format == "jpg":
+            save_options = {
+                "Q": quality,  # Quality
+                "optimize_coding": True,  # Optimize Huffman coding tables
+                "strip": True,  # Strip metadata
+                "interlace": True,  # Progressive JPEG
+                "autorot": True,  # Auto-rotate based on EXIF orientation
+            }
+        elif vips_format == "png":
+            save_options = {
+                "compression": 9,  # Maximum compression
+                "strip": True,  # Strip metadata
+                "interlace": True,  # Progressive PNG
+            }
+        elif vips_format == "webp":
+            save_options = {
+                "Q": quality,  # Quality
+                "effort": 6,  # Compression effort (replaces deprecated reduction_effort)
+            }
         
-        buffer.seek(0)
-        return buffer.getvalue()
+        # Save to memory
+        return img.write_to_buffer(f".{vips_format}", **save_options)
     
     @staticmethod
     def resize_image(
-        img: Image.Image,
+        img: pyvips.Image,
         width: Optional[int] = None,
         height: Optional[int] = None,
         resize_mode: str = "fit"
-    ) -> Image.Image:
+    ) -> pyvips.Image:
         """
         Resize an image according to the specified parameters.
         
         Args:
-            img: PIL Image object
+            img: pyvips Image object
             width: Target width (None to maintain aspect ratio)
             height: Target height (None to maintain aspect ratio)
             resize_mode: Resize mode (fit, fill, exact)
             
         Returns:
-            Resized PIL Image object
+            Resized pyvips Image object
         """
-        orig_width, orig_height = img.size
+        orig_width, orig_height = img.width, img.height
         
         # If both dimensions are None or 0, return the original
         if not width and not height:
@@ -117,52 +130,30 @@ class ImageProcessor:
         width = int(width) if width else orig_width
         height = int(height) if height else orig_height
         
+        # Get the appropriate vips resize mode
+        vips_resize_mode = RESIZE_MAP.get(resize_mode, "contain")
+        
         # Resize based on the specified mode
-        if resize_mode == "exact":
+        if vips_resize_mode == "force":  # exact
             # Resize to exact dimensions (may distort)
-            return img.resize((width, height), Image.LANCZOS)
+            return img.resize(width / orig_width, height=height, vscale=height / orig_height)
         
-        elif resize_mode == "fill":
+        elif vips_resize_mode == "cover":  # fill
             # Resize to fill dimensions (may crop)
-            img_ratio = orig_width / orig_height
-            target_ratio = width / height
+            # First resize to cover the target dimensions
+            scale = max(width / orig_width, height / orig_height)
+            resized = img.resize(scale)
             
-            if img_ratio > target_ratio:
-                # Image is wider than target, scale by height and crop width
-                new_width = int(height * img_ratio)
-                new_height = height
-                resized = img.resize((new_width, new_height), Image.LANCZOS)
-                
-                # Crop to target width
-                left = (new_width - width) // 2
-                right = left + width
-                return resized.crop((left, 0, right, height))
-            else:
-                # Image is taller than target, scale by width and crop height
-                new_width = width
-                new_height = int(width / img_ratio)
-                resized = img.resize((new_width, new_height), Image.LANCZOS)
-                
-                # Crop to target height
-                top = (new_height - height) // 2
-                bottom = top + height
-                return resized.crop((0, top, width, bottom))
+            # Then crop to target dimensions
+            left = (resized.width - width) // 2
+            top = (resized.height - height) // 2
+            
+            return resized.crop(left, top, width, height)
         
-        else:  # "fit" (default)
+        else:  # "contain" (fit, default)
             # Resize to fit within dimensions (maintain aspect ratio)
-            img_ratio = orig_width / orig_height
-            target_ratio = width / height
-            
-            if img_ratio > target_ratio:
-                # Image is wider than target, constrain by width
-                new_width = width
-                new_height = int(width / img_ratio)
-            else:
-                # Image is taller than target, constrain by height
-                new_width = int(height * img_ratio)
-                new_height = height
-            
-            return img.resize((new_width, new_height), Image.LANCZOS)
+            scale = min(width / orig_width, height / orig_height)
+            return img.resize(scale)
     
     @staticmethod
     def get_image_format(image_path: Union[str, Path]) -> str:
@@ -175,12 +166,36 @@ class ImageProcessor:
         Returns:
             Format string (webp, jpeg, png)
         """
-        with Image.open(image_path) as img:
-            format = img.format.lower()
+        try:
+            # Use pyvips to get image format
+            image = pyvips.Image.new_from_file(str(image_path))
+            # Get format from loader
+            loader = image.get_typeof('vips-loader')
+            if loader != 0:  # If loader property exists
+                format = image.get('vips-loader').lower()
+                if format == "jpegload":
+                    return "jpg"
+                elif format == "pngload":
+                    return "png"
+                elif format == "webpload":
+                    return "webp"
             
-            if format == "jpeg":
+            # Fallback: guess from file extension
+            ext = Path(image_path).suffix.lower().lstrip('.')
+            if ext in ('jpg', 'jpeg'):
                 return "jpg"
-            return format
+            elif ext in ('png', 'webp'):
+                return ext
+            
+            return "jpg"  # Default to jpg if can't determine
+        except Exception:
+            # If pyvips fails, guess from file extension
+            ext = Path(image_path).suffix.lower().lstrip('.')
+            if ext in ('jpg', 'jpeg'):
+                return "jpg"
+            elif ext in ('png', 'webp'):
+                return ext
+            return "jpg"  # Default to jpg if can't determine
     
     @staticmethod
     def get_content_type(format: str) -> str:

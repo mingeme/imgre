@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Union, BinaryIO
 
 import boto3
+import pyvips
 from botocore.exceptions import ClientError
 
 from imgre.image import ImageProcessor
@@ -259,8 +260,10 @@ class S3Storage:
         # Download source object
         source_data = self.download_object(source_key)
         
-        # Process image
-        img = Image.open(io.BytesIO(source_data))
+        # Process image - create a temporary file for pyvips to read
+        temp_file = io.BytesIO(source_data)
+        # Use pyvips to load from memory buffer
+        img = pyvips.Image.new_from_buffer(source_data, "")
         processed_data = ImageProcessor.process_image(
             img=img,
             width=width,

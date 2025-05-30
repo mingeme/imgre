@@ -15,7 +15,7 @@ authors = [
 dependencies = [
     "click>=8.1.0",
     "boto3>=1.28.0",
-    "pillow>=10.0.0",
+    "pyvips>=2.2.1",
     "python-dotenv>=1.0.0",
     "tomli>=2.0.0; python_version < '3.11'",
 ]
