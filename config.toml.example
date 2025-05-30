@@ -1,0 +1,31 @@
+# S3 Configuration
+[s3]
+# S3 bucket name (required)
+bucket = "my-images-bucket"
+
+# S3 endpoint URL (for non-AWS S3 services)
+# Format: https://s3.example.com
+# Leave empty for AWS S3
+endpoint = "https://s3.bitiful.net"
+
+# AWS region (required for AWS S3)
+region = "us-east-1"
+
+# AWS credentials
+# These can be left empty if using environment variables or AWS credential files
+access_key = ""
+secret_key = ""
+
+# Default image processing options
+[image]
+# Default format for conversions
+format = "webp"
+
+# Default quality (1-100)
+quality = 80
+
+# Default resize behavior
+# "fit" - Resize to fit within dimensions
+# "fill" - Resize to fill dimensions (may crop)
+# "exact" - Resize to exact dimensions (may distort)
+resize_mode = "fit"
