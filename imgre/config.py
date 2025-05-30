@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file if it exists
 load_dotenv()
 
+
 def get_config_paths() -> list[Path]:
     """
     Get a list of possible configuration file paths in order of priority.
@@ -37,6 +38,7 @@ def get_config_paths() -> list[Path]:
 
     return paths
 
+
 def load_config() -> Dict[str, Any]:
     """
     Load configuration from TOML files and environment variables.
@@ -54,7 +56,7 @@ def load_config() -> Dict[str, Any]:
             "format": "webp",
             "quality": 80,
             "resize_mode": "fit",
-        }
+        },
     }
 
     # Try to load from config files
@@ -103,9 +105,14 @@ def load_config() -> Dict[str, Any]:
     if not config["s3"]["secret_key"]:
         config["s3"]["secret_key"] = os.environ.get("AWS_SECRET_ACCESS_KEY")
     if not config["s3"]["region"]:
-        config["s3"]["region"] = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-east-1"
+        config["s3"]["region"] = (
+            os.environ.get("AWS_REGION")
+            or os.environ.get("AWS_DEFAULT_REGION")
+            or "us-east-1"
+        )
 
     return config
+
 
 def get_s3_url_format(config: Dict[str, Any]) -> str:
     """
@@ -124,6 +131,7 @@ def get_s3_url_format(config: Dict[str, Any]) -> str:
     else:
         # Standard AWS S3
         return f"https://{bucket}.s3.{region}.amazonaws.com/{{key}}"
+
 
 def validate_config(config: Dict[str, Any]) -> Optional[str]:
     """

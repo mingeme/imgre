@@ -16,6 +16,7 @@ from imgre.image import ImageProcessor
 
 logger = logging.getLogger(__name__)
 
+
 class S3Storage:
     """
     Handles S3 storage operations.
@@ -84,7 +85,7 @@ class S3Storage:
         file_path: Union[str, Path],
         object_key: Optional[str] = None,
         content_type: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Upload a file to S3.
@@ -123,7 +124,7 @@ class S3Storage:
                     Key=object_key,
                     Body=f,
                     ContentType=content_type,
-                    **kwargs
+                    **kwargs,
                 )
 
             # Return URL
@@ -138,7 +139,7 @@ class S3Storage:
         data: bytes,
         object_key: str,
         content_type: str = "application/octet-stream",
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Upload bytes data to S3.
@@ -158,7 +159,7 @@ class S3Storage:
                 Key=object_key,
                 Body=data,
                 ContentType=content_type,
-                **kwargs
+                **kwargs,
             )
 
             # Return URL
@@ -168,12 +169,7 @@ class S3Storage:
             logger.error(f"Error uploading bytes to S3: {e}")
             raise
 
-    def copy_object(
-        self,
-        source_key: str,
-        target_key: str,
-        **kwargs
-    ) -> str:
+    def copy_object(self, source_key: str, target_key: str, **kwargs) -> str:
         """
         Copy an object within the same bucket.
 
@@ -190,7 +186,7 @@ class S3Storage:
                 Bucket=self.bucket,
                 CopySource={"Bucket": self.bucket, "Key": source_key},
                 Key=target_key,
-                **kwargs
+                **kwargs,
             )
 
             # Return URL
@@ -271,7 +267,7 @@ class S3Storage:
             height=height,
             format=format,
             quality=quality,
-            resize_mode=resize_mode
+            resize_mode=resize_mode,
         )
 
         # Update target key extension if format is different
@@ -303,7 +299,7 @@ class S3Storage:
         prefix: Optional[str] = None,
         max_keys: int = 1000,
         continuation_token: Optional[str] = None,
-        delimiter: Optional[str] = None
+        delimiter: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         List objects in the S3 bucket.
@@ -318,10 +314,7 @@ class S3Storage:
             Dictionary containing the list results
         """
         try:
-            params = {
-                "Bucket": self.bucket,
-                "MaxKeys": max_keys
-            }
+            params = {"Bucket": self.bucket, "MaxKeys": max_keys}
 
             if prefix is not None:
                 params["Prefix"] = prefix
@@ -339,7 +332,7 @@ class S3Storage:
                 "objects": [],
                 "prefixes": [],
                 "is_truncated": response.get("IsTruncated", False),
-                "next_token": response.get("NextContinuationToken")
+                "next_token": response.get("NextContinuationToken"),
             }
 
             # Process objects
@@ -347,13 +340,15 @@ class S3Storage:
                 size_mb = obj.get("Size", 0) / (1024 * 1024)
                 last_modified = obj.get("LastModified")
 
-                result["objects"].append({
-                    "key": obj.get("Key"),
-                    "size": obj.get("Size"),
-                    "size_formatted": f"{size_mb:.2f} MB",
-                    "last_modified": last_modified,
-                    "url": self.url_format.format(key=obj.get("Key"))
-                })
+                result["objects"].append(
+                    {
+                        "key": obj.get("Key"),
+                        "size": obj.get("Size"),
+                        "size_formatted": f"{size_mb:.2f} MB",
+                        "last_modified": last_modified,
+                        "url": self.url_format.format(key=obj.get("Key")),
+                    }
+                )
 
             # Process common prefixes (folders)
             for prefix_obj in response.get("CommonPrefixes", []):

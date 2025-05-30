@@ -2,21 +2,14 @@
 Textual UI for S3 storage management.
 """
 
-import os
-from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import List
 
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical
-from textual.widgets import (
-    DataTable, Header, Footer, Button, Static, Input, Label,
-    Select, LoadingIndicator, Placeholder
-)
-from textual.widgets.data_table import RowKey
+from textual.containers import Container, Horizontal
+from textual.widgets import DataTable, Footer, Button, Static, Input, LoadingIndicator
 from textual.screen import Screen, ModalScreen
 from textual.binding import Binding
-from textual.coordinate import Coordinate
 
 from imgre.config import load_config, validate_config
 from imgre.storage import S3Storage
@@ -39,7 +32,11 @@ class FilterDialog(ModalScreen):
         """Compose the filter dialog."""
         with Container(id="filter-dialog"):
             yield Static("Filter Objects", id="filter-title")
-            yield Input(value=self.current_filter, placeholder="Enter filter text", id="filter-input")
+            yield Input(
+                value=self.current_filter,
+                placeholder="Enter filter text",
+                id="filter-input",
+            )
             with Horizontal(id="filter-buttons"):
                 yield Button("Cancel", variant="primary", id="cancel-btn")
                 yield Button("Apply", variant="success", id="apply-btn")
@@ -68,6 +65,7 @@ class FilterDialog(ModalScreen):
         """Handle apply button press."""
         self.action_apply_filter()
 
+
 class ConfirmDeleteScreen(Screen):
     """Screen for confirming object deletion."""
 
@@ -84,7 +82,9 @@ class ConfirmDeleteScreen(Screen):
     def compose(self) -> ComposeResult:
         """Compose the confirmation screen."""
         with Container(id="confirm-dialog"):
-            yield Static(f"Delete {len(self.object_keys)} object(s)?", id="confirm-title")
+            yield Static(
+                f"Delete {len(self.object_keys)} object(s)?", id="confirm-title"
+            )
             for key in self.object_keys[:5]:  # Show first 5 objects
                 yield Static(f"• {key}")
 
@@ -216,9 +216,7 @@ class S3BrowserApp(App):
         """Set up the app when mounted."""
         # Set up the table
         table = self.query_one(DataTable)
-        table.add_columns(
-            "Select", "Type", "Key", "Size", "Last Modified", "URL"
-        )
+        table.add_columns("Select", "Type", "Key", "Size", "Last Modified", "URL")
 
         # Load config and initialize storage
         self.load_config()
@@ -264,22 +262,22 @@ class S3BrowserApp(App):
             result = self.storage.list_objects(
                 prefix=self.current_prefix or None,
                 continuation_token=self.continuation_token,
-                delimiter=delimiter
+                delimiter=delimiter,
             )
 
             # Add prefixes (folders) if not recursive
             if result["prefixes"] and not self.recursive:
                 for prefix in result["prefixes"]:
-                    table.add_row(
-                        "□", "📁", prefix, "", "", "",
-                        key=f"prefix:{prefix}"
-                    )
+                    table.add_row("□", "📁", prefix, "", "", "", key=f"prefix:{prefix}")
 
             # Add objects
             filtered_objects = []
             for obj in result["objects"]:
                 # Apply filter if set
-                if self.filter_text and self.filter_text.lower() not in obj["key"].lower():
+                if (
+                    self.filter_text
+                    and self.filter_text.lower() not in obj["key"].lower()
+                ):
                     continue
 
                 filtered_objects.append(obj)
@@ -287,26 +285,40 @@ class S3BrowserApp(App):
 
                 # If using delimiter, show only the last part of the key for better readability
                 if delimiter and not self.recursive and self.current_prefix:
-                    key_parts = obj["key"][len(self.current_prefix):].split(delimiter)
+                    key_parts = obj["key"][len(self.current_prefix) :].split(delimiter)
                     if key_parts:
                         key_display = key_parts[-1]
                     else:
                         key_display = obj["key"]
 
                 # Format last modified
-                last_modified = obj["last_modified"].strftime("%Y-%m-%d %H:%M:%S") if obj["last_modified"] else "N/A"
+                last_modified = (
+                    obj["last_modified"].strftime("%Y-%m-%d %H:%M:%S")
+                    if obj["last_modified"]
+                    else "N/A"
+                )
 
                 table.add_row(
-                    "□", "📄", key_display, obj["size_formatted"], last_modified, obj["url"],
-                    key=f"object:{obj['key']}"
+                    "□",
+                    "📄",
+                    key_display,
+                    obj["size_formatted"],
+                    last_modified,
+                    obj["url"],
+                    key=f"object:{obj['key']}",
                 )
 
             # Update continuation token
             self.continuation_token = result["next_token"]
 
             # Update footer with stats
-            stats_text = f"Objects: {len(filtered_objects)}/{len(result['objects'])}" + (
-                f", Prefixes: {len(result['prefixes'])}" if not self.recursive else ""
+            stats_text = (
+                f"Objects: {len(filtered_objects)}/{len(result['objects'])}"
+                + (
+                    f", Prefixes: {len(result['prefixes'])}"
+                    if not self.recursive
+                    else ""
+                )
             )
 
             # Show pagination info in footer
@@ -332,7 +344,6 @@ class S3BrowserApp(App):
         """Handle row selection."""
         table = self.query_one(DataTable)
         row_key = event.row_key.value
-        row = table.get_row(row_key)
 
         # Toggle selection
         if row_key in self.selected_rows:

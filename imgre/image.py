@@ -5,7 +5,7 @@ Handles image resizing, compression, and format conversion using libvips.
 
 import pyvips
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Optional, Union
 
 # Mapping of format names to libvips format strings
 FORMAT_MAP = {
@@ -18,9 +18,10 @@ FORMAT_MAP = {
 # Mapping of resize modes to libvips resize operations
 RESIZE_MAP = {
     "fit": "contain",  # Resize to fit within dimensions
-    "fill": "cover",   # Resize to fill dimensions (may crop)
+    "fill": "cover",  # Resize to fill dimensions (may crop)
     "exact": "force",  # Resize to exact dimensions (may distort)
 }
+
 
 class ImageProcessor:
     """
@@ -41,7 +42,7 @@ class ImageProcessor:
         height: Optional[int] = None,
         format: str = "webp",
         quality: int = 80,
-        resize_mode: str = "fit"
+        resize_mode: str = "fit",
     ) -> bytes:
         """
         Process an image with the specified parameters.
@@ -98,7 +99,7 @@ class ImageProcessor:
         img: pyvips.Image,
         width: Optional[int] = None,
         height: Optional[int] = None,
-        resize_mode: str = "fit"
+        resize_mode: str = "fit",
     ) -> pyvips.Image:
         """
         Resize an image according to the specified parameters.
@@ -134,7 +135,9 @@ class ImageProcessor:
         # Resize based on the specified mode
         if vips_resize_mode == "force":  # exact
             # Resize to exact dimensions (may distort)
-            return img.resize(width / orig_width, height=height, vscale=height / orig_height)
+            return img.resize(
+                width / orig_width, height=height, vscale=height / orig_height
+            )
 
         elif vips_resize_mode == "cover":  # fill
             # Resize to fill dimensions (may crop)
@@ -168,9 +171,9 @@ class ImageProcessor:
             # Use pyvips to get image format
             image = pyvips.Image.new_from_file(str(image_path))
             # Get format from loader
-            loader = image.get_typeof('vips-loader')
+            loader = image.get_typeof("vips-loader")
             if loader != 0:  # If loader property exists
-                format = image.get('vips-loader').lower()
+                format = image.get("vips-loader").lower()
                 if format == "jpegload":
                     return "jpg"
                 elif format == "pngload":
@@ -179,19 +182,19 @@ class ImageProcessor:
                     return "webp"
 
             # Fallback: guess from file extension
-            ext = Path(image_path).suffix.lower().lstrip('.')
-            if ext in ('jpg', 'jpeg'):
+            ext = Path(image_path).suffix.lower().lstrip(".")
+            if ext in ("jpg", "jpeg"):
                 return "jpg"
-            elif ext in ('png', 'webp'):
+            elif ext in ("png", "webp"):
                 return ext
 
             return "jpg"  # Default to jpg if can't determine
         except Exception:
             # If pyvips fails, guess from file extension
-            ext = Path(image_path).suffix.lower().lstrip('.')
-            if ext in ('jpg', 'jpeg'):
+            ext = Path(image_path).suffix.lower().lstrip(".")
+            if ext in ("jpg", "jpeg"):
                 return "jpg"
-            elif ext in ('png', 'webp'):
+            elif ext in ("png", "webp"):
                 return ext
             return "jpg"  # Default to jpg if can't determine
 

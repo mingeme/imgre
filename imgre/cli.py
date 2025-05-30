@@ -3,7 +3,6 @@ Command-line interface for imgre.
 """
 
 import sys
-import logging
 from pathlib import Path
 from typing import Optional
 
@@ -14,12 +13,6 @@ from imgre.image import ImageProcessor
 from imgre.storage import S3Storage
 from imgre.ui import run_ui
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
 
 @click.group()
 @click.version_option()
@@ -31,14 +24,30 @@ def cli():
     """
     pass
 
+
 @cli.command("up")
-@click.option("-i", "--input", "input_path", required=True, help="Path to the input image file")
-@click.option("-k", "--key", "object_key", help="S3 object key (path in bucket), defaults to filename")
+@click.option(
+    "-i", "--input", "input_path", required=True, help="Path to the input image file"
+)
+@click.option(
+    "-k",
+    "--key",
+    "object_key",
+    help="S3 object key (path in bucket), defaults to filename",
+)
 @click.option("-c", "--compress", is_flag=True, help="Compress image before uploading")
-@click.option("-q", "--quality", type=int, help="Quality of the compressed image (1-100)")
-@click.option("-w", "--width", type=int, help="Width of the output image (0 for original)")
-@click.option("-h", "--height", type=int, help="Height of the output image (0 for original)")
-@click.option("-f", "--format", "output_format", help="Convert to format (webp, jpeg, png)")
+@click.option(
+    "-q", "--quality", type=int, help="Quality of the compressed image (1-100)"
+)
+@click.option(
+    "-w", "--width", type=int, help="Width of the output image (0 for original)"
+)
+@click.option(
+    "-h", "--height", type=int, help="Height of the output image (0 for original)"
+)
+@click.option(
+    "-f", "--format", "output_format", help="Convert to format (webp, jpeg, png)"
+)
 def upload(
     input_path: str,
     object_key: Optional[str] = None,
@@ -92,7 +101,7 @@ def upload(
                 height=height,
                 format=output_format,
                 quality=quality,
-                resize_mode=config["image"]["resize_mode"]
+                resize_mode=config["image"]["resize_mode"],
             )
 
             # Update object key extension if format is different
@@ -103,7 +112,9 @@ def upload(
 
             # Upload processed image
             content_type = ImageProcessor.get_content_type(output_format)
-            url = storage.upload_bytes(processed_data, object_key, content_type=content_type)
+            url = storage.upload_bytes(
+                processed_data, object_key, content_type=content_type
+            )
 
             click.echo(f"Processed and uploaded image to: {url}")
         else:
@@ -115,13 +126,29 @@ def upload(
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
+
 @cli.command("cp")
-@click.option("-s", "--source", "source_key", required=True, help="Source S3 object key to copy")
-@click.option("-t", "--target", "target_key", help="Target S3 object key (destination), defaults to source-copy")
-@click.option("-f", "--format", "output_format", help="Convert to format (webp, jpeg, png)")
-@click.option("-q", "--quality", type=int, help="Quality of the converted image (1-100)")
-@click.option("-w", "--width", type=int, help="Width of the output image (0 for original)")
-@click.option("-h", "--height", type=int, help="Height of the output image (0 for original)")
+@click.option(
+    "-s", "--source", "source_key", required=True, help="Source S3 object key to copy"
+)
+@click.option(
+    "-t",
+    "--target",
+    "target_key",
+    help="Target S3 object key (destination), defaults to source-copy",
+)
+@click.option(
+    "-f", "--format", "output_format", help="Convert to format (webp, jpeg, png)"
+)
+@click.option(
+    "-q", "--quality", type=int, help="Quality of the converted image (1-100)"
+)
+@click.option(
+    "-w", "--width", type=int, help="Width of the output image (0 for original)"
+)
+@click.option(
+    "-h", "--height", type=int, help="Height of the output image (0 for original)"
+)
 def copy(
     source_key: str,
     target_key: Optional[str] = None,
@@ -160,7 +187,7 @@ def copy(
             width=width,
             height=height,
             quality=quality,
-            resize_mode=config["image"]["resize_mode"]
+            resize_mode=config["image"]["resize_mode"],
         )
 
         click.echo(f"Copied and transformed object to: {url}")
@@ -169,13 +196,24 @@ def copy(
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
+
 @cli.command("ls")
 @click.option("-p", "--prefix", help="Prefix to filter objects by")
-@click.option("-d", "--delimiter", help="Character used to group keys (e.g., '/' for folder-like hierarchy)")
-@click.option("-m", "--max-keys", type=int, default=1000, help="Maximum number of keys to return")
-@click.option("-t", "--token", "continuation_token", help="Continuation token for pagination")
+@click.option(
+    "-d",
+    "--delimiter",
+    help="Character used to group keys (e.g., '/' for folder-like hierarchy)",
+)
+@click.option(
+    "-m", "--max-keys", type=int, default=1000, help="Maximum number of keys to return"
+)
+@click.option(
+    "-t", "--token", "continuation_token", help="Continuation token for pagination"
+)
 @click.option("--url", is_flag=True, help="Show URLs for objects")
-@click.option("--recursive", is_flag=True, help="List objects recursively (ignores delimiter)")
+@click.option(
+    "--recursive", is_flag=True, help="List objects recursively (ignores delimiter)"
+)
 def list_objects(
     prefix: Optional[str] = None,
     delimiter: Optional[str] = "/",
@@ -207,7 +245,7 @@ def list_objects(
             prefix=prefix,
             max_keys=max_keys,
             continuation_token=continuation_token,
-            delimiter=delimiter
+            delimiter=delimiter,
         )
 
         # Display prefixes (folders)
@@ -220,12 +258,16 @@ def list_objects(
         if result["objects"]:
             click.echo("\nObjects:")
             for obj in result["objects"]:
-                last_modified = obj["last_modified"].strftime("%Y-%m-%d %H:%M:%S") if obj["last_modified"] else "N/A"
+                last_modified = (
+                    obj["last_modified"].strftime("%Y-%m-%d %H:%M:%S")
+                    if obj["last_modified"]
+                    else "N/A"
+                )
                 key_display = obj["key"]
 
                 # If using delimiter, show only the last part of the key for better readability
                 if delimiter and not recursive and prefix:
-                    key_parts = obj["key"][len(prefix):].split(delimiter)
+                    key_parts = obj["key"][len(prefix) :].split(delimiter)
                     if key_parts and key_parts[-1]:
                         key_display = key_parts[-1]
                     else:
@@ -243,13 +285,53 @@ def list_objects(
         # Show pagination info
         if result["is_truncated"]:
             click.echo("\nResults truncated. For more results, use:")
-            click.echo(f"imgre ls --token {result['next_token']}" +
-                      (f" --prefix {prefix}" if prefix else "") +
-                      (" --recursive" if recursive else ""))
+            click.echo(
+                f"imgre ls --token {result['next_token']}"
+                + (f" --prefix {prefix}" if prefix else "")
+                + (" --recursive" if recursive else "")
+            )
 
         # Show summary
-        click.echo(f"\nTotal: {len(result['objects'])} objects" +
-                  (f", {len(result['prefixes'])} prefixes" if not recursive else ""))
+        click.echo(
+            f"\nTotal: {len(result['objects'])} objects"
+            + (f", {len(result['prefixes'])} prefixes" if not recursive else "")
+        )
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command("rm")
+@click.argument("object_key", required=True)
+@click.option("-f", "--force", is_flag=True, help="Skip confirmation prompt")
+def remove(object_key: str, force: bool = False):
+    """
+    Delete an object from S3 by its key.
+
+    OBJECT_KEY is the full path/key of the object to delete.
+    """
+    # Load and validate configuration
+    config = load_config()
+    error = validate_config(config)
+    if error:
+        click.echo(f"Configuration error: {error}", err=True)
+        sys.exit(1)
+
+    # Create S3 storage handler
+    storage = S3Storage(config)
+
+    try:
+        # Confirm deletion unless force flag is used
+        if not force:
+            confirm = click.confirm(f"Are you sure you want to delete '{object_key}'?")
+            if not confirm:
+                click.echo("Deletion cancelled.")
+                return
+
+        # Delete the object
+        storage.delete_object(object_key)
+        click.echo(f"Deleted object: {object_key}")
 
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
@@ -260,7 +342,7 @@ def list_objects(
 def ui():
     """
     Launch the S3 browser UI.
-    
+
     Interactive TUI for browsing and managing S3 objects.
     """
     try:
@@ -279,6 +361,7 @@ def main():
     except Exception as e:
         click.echo(f"Unexpected error: {e}", err=True)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
