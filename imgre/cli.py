@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def cli():
     """
     imgre - Image Optimization and S3 Management Tool
-    
+
     A Python port of the imgood project.
     """
     pass
@@ -56,33 +56,33 @@ def upload(
     if error:
         click.echo(f"Configuration error: {error}", err=True)
         sys.exit(1)
-    
+
     # Create S3 storage handler
     storage = S3Storage(config)
-    
+
     # Validate input file
     input_path = Path(input_path)
     if not input_path.exists():
         click.echo(f"Input file not found: {input_path}", err=True)
         sys.exit(1)
-    
+
     # Set default object key if not provided
     if not object_key:
         object_key = input_path.name
-    
+
     # Set default quality from config if not provided
     if quality is None:
         quality = config["image"]["quality"]
-    
+
     # Set default format from config if not provided
     if not output_format:
         output_format = config["image"]["format"]
-    
+
     try:
         # If compression or format conversion is requested
         if compress or width or height or output_format:
             click.echo(f"Processing image: {input_path}")
-            
+
             # Open and process the image
             img = ImageProcessor.open_image(input_path)
             processed_data = ImageProcessor.process_image(
@@ -93,23 +93,23 @@ def upload(
                 quality=quality,
                 resize_mode=config["image"]["resize_mode"]
             )
-            
+
             # Update object key extension if format is different
             if output_format:
                 object_path = Path(object_key)
                 if object_path.suffix.lower() != f".{output_format.lower()}":
                     object_key = f"{object_path.stem}.{output_format.lower()}"
-            
+
             # Upload processed image
             content_type = ImageProcessor.get_content_type(output_format)
             url = storage.upload_bytes(processed_data, object_key, content_type=content_type)
-            
+
             click.echo(f"Processed and uploaded image to: {url}")
         else:
             # Direct upload without processing
             url = storage.upload_file(input_path, object_key)
             click.echo(f"Uploaded image to: {url}")
-    
+
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -138,18 +138,18 @@ def copy(
     if error:
         click.echo(f"Configuration error: {error}", err=True)
         sys.exit(1)
-    
+
     # Create S3 storage handler
     storage = S3Storage(config)
-    
+
     # Set default format from config if not provided
     if not output_format:
         output_format = config["image"]["format"]
-    
+
     # Set default quality from config if not provided
     if quality is None:
         quality = config["image"]["quality"]
-    
+
     try:
         # Perform copy with transformation
         url = storage.copy_with_transform(
@@ -161,9 +161,9 @@ def copy(
             quality=quality,
             resize_mode=config["image"]["resize_mode"]
         )
-        
+
         click.echo(f"Copied and transformed object to: {url}")
-    
+
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -192,14 +192,14 @@ def list_objects(
     if error:
         click.echo(f"Configuration error: {error}", err=True)
         sys.exit(1)
-    
+
     # Create S3 storage handler
     storage = S3Storage(config)
-    
+
     # If recursive, don't use delimiter
     if recursive:
         delimiter = None
-    
+
     try:
         # List objects
         result = storage.list_objects(
@@ -208,20 +208,20 @@ def list_objects(
             continuation_token=continuation_token,
             delimiter=delimiter
         )
-        
+
         # Display prefixes (folders)
         if result["prefixes"] and not recursive:
             click.echo("\nPrefixes (folders):")
             for prefix_path in result["prefixes"]:
                 click.echo(f"  📁 {prefix_path}")
-        
+
         # Display objects
         if result["objects"]:
             click.echo("\nObjects:")
             for obj in result["objects"]:
                 last_modified = obj["last_modified"].strftime("%Y-%m-%d %H:%M:%S") if obj["last_modified"] else "N/A"
                 key_display = obj["key"]
-                
+
                 # If using delimiter, show only the last part of the key for better readability
                 if delimiter and not recursive and prefix:
                     key_parts = obj["key"][len(prefix):].split(delimiter)
@@ -229,27 +229,27 @@ def list_objects(
                         key_display = key_parts[-1]
                     else:
                         key_display = obj["key"]
-                
+
                 # Format the output
                 line = f"  📄 {key_display} ({obj['size_formatted']}, {last_modified})"
-                
+
                 # Add URL if requested
                 if url:
                     line += f"\n     URL: {obj['url']}"
-                
+
                 click.echo(line)
-        
+
         # Show pagination info
         if result["is_truncated"]:
             click.echo("\nResults truncated. For more results, use:")
-            click.echo(f"imgre ls --token {result['next_token']}" + 
-                      (f" --prefix {prefix}" if prefix else "") + 
+            click.echo(f"imgre ls --token {result['next_token']}" +
+                      (f" --prefix {prefix}" if prefix else "") +
                       (" --recursive" if recursive else ""))
-        
+
         # Show summary
-        click.echo(f"\nTotal: {len(result['objects'])} objects" + 
+        click.echo(f"\nTotal: {len(result['objects'])} objects" +
                   (f", {len(result['prefixes'])} prefixes" if not recursive else ""))
-    
+
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
