@@ -2,12 +2,15 @@
 Textual UI for S3 storage management.
 """
 
-from typing import List
+from typing import List, Optional
 
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal
-from textual.widgets import DataTable, Footer, Button, Static, Input, LoadingIndicator
+from textual.containers import Container, Horizontal, VerticalScroll
+from textual.widgets import (
+    DataTable, Footer, Button, Static, Input,
+    LoadingIndicator, Tree
+)
 from textual.screen import Screen, ModalScreen
 from textual.binding import Binding
 
@@ -119,25 +122,70 @@ class S3BrowserApp(App):
     """Textual app for browsing S3 objects."""
 
     CSS = """
-    #header-container {
-        height: auto;
+    /* Main layout */
+    #app-grid {
+        layout: grid;
+        grid-size: 3 3;  /* 3 columns, 3 rows */
+        grid-rows: 1fr 12fr 1fr;  /* Top info bar, main content, status bar */
+        grid-columns: 1fr 3fr 1fr;  /* Left panel, main content, right panel */
+        height: 100%;
+        width: 100%;
+    }
+
+    /* Top info bar */
+    #info-bar {
+        column-span: 3;  /* Span all columns */
+        background: $surface;
+        border-bottom: solid $primary;
+        height: 100%;
+        padding: 0 1;
+    }
+
+    /* Left panel - folders/buckets */
+    #left-panel {
+        background: $surface-darken-1;
+        border-right: solid $primary-background;
+        height: 100%;
+        overflow: auto;
+    }
+
+    /* Main content - objects table */
+    #main-content {
+        height: 100%;
+        overflow: auto;
+    }
+
+    /* Right panel - object details */
+    #right-panel {
+        background: $surface-darken-1;
+        border-left: solid $primary-background;
+        height: 100%;
+        overflow: auto;
         padding: 1;
     }
 
-    #controls {
-        height: auto;
-        margin: 1 0;
+    /* Status bar */
+    #status-bar {
+        column-span: 3;  /* Span all columns */
+        background: $surface;
+        border-top: solid $primary;
+        height: 100%;
+        padding: 0 1;
     }
 
-    #prefix-input {
-        width: 60%;
+    /* Object table styling */
+    #objects-table {
+        width: 100%;
+        height: 100%;
     }
 
+    /* Loading indicator */
     #loading {
         align: center middle;
     }
 
-    #confirm-dialog {
+    /* Dialog styling */
+    #confirm-dialog, #filter-dialog {
         background: $surface;
         border: solid $primary;
         padding: 1 2;
@@ -146,27 +194,7 @@ class S3BrowserApp(App):
         align: center middle;
     }
 
-    #confirm-title {
-        text-align: center;
-        margin-bottom: 1;
-        text-style: bold;
-    }
-
-    #confirm-buttons {
-        margin-top: 1;
-        align-horizontal: center;
-    }
-
-    #filter-dialog {
-        background: $surface;
-        border: solid $primary;
-        padding: 1 2;
-        width: 60;
-        height: auto;
-        align: center middle;
-    }
-
-    #filter-title {
+    #confirm-title, #filter-title {
         text-align: center;
         margin-bottom: 1;
         text-style: bold;
@@ -177,13 +205,23 @@ class S3BrowserApp(App):
         width: 100%;
     }
 
-    #filter-buttons {
+    #confirm-buttons, #filter-buttons {
         margin-top: 1;
         align-horizontal: center;
     }
 
     Button {
         margin: 0 1;
+    }
+
+    /* Tree styling */
+    #bucket-tree {
+        padding: 1;
+    }
+
+    /* Object details styling */
+    #object-details {
+        padding: 1;
     }
     """
 
@@ -208,21 +246,88 @@ class S3BrowserApp(App):
 
     def compose(self) -> ComposeResult:
         """Compose the app layout."""
-        yield DataTable(id="objects-table")
-        yield LoadingIndicator(id="loading")
+        with Container(id="app-grid"):
+            # Top info bar
+            yield Static("S3 Browser", id="info-bar")
+
+            # Left panel - folder/bucket tree
+            with VerticalScroll(id="left-panel"):
+                yield Tree("Buckets", id="bucket-tree")
+
+            # Main content - objects table
+            with Container(id="main-content"):
+                yield DataTable(id="objects-table")
+                yield LoadingIndicator(id="loading")
+
+            # Right panel - object details
+            with VerticalScroll(id="right-panel"):
+                yield Static("Object Details", id="object-details")
+
+            # Bottom status bar
+            yield Static("", id="status-bar")
+
+        # Footer for keyboard shortcuts
         yield Footer()
 
     def on_mount(self) -> None:
         """Set up the app when mounted."""
         # Set up the table
         table = self.query_one(DataTable)
-        table.add_columns("Select", "Type", "Key", "Size", "Last Modified", "URL")
+        table.add_columns("Key", "Size", "Last Modified", "URL")
+        table.cursor_type = "row"
+
+        # Set up the status bar
+        status_bar = self.query_one("#status-bar")
+        status_bar.update("Ready")
 
         # Load config and initialize storage
         self.load_config()
 
+        # Set up the bucket tree
+        self._setup_bucket_tree()
+
         # Initial data load
         self.load_data()
+
+    def _setup_bucket_tree(self) -> None:
+        """Set up the bucket tree in the left panel."""
+        if not self.storage:
+            return
+
+        bucket_tree = self.query_one("#bucket-tree", Tree)
+        bucket_node = bucket_tree.root.add(self.config['s3']['bucket'], expand=True)
+
+        # Add a node for the current prefix if it's not empty
+        if self.current_prefix:
+            prefix_parts = self.current_prefix.strip('/').split('/')
+            current_node = bucket_node
+
+            # Build the prefix tree
+            current_path = ""
+            for part in prefix_parts:
+                if not part:
+                    continue
+
+                current_path += part + "/"
+                current_node = current_node.add(part, data={"prefix": current_path})
+
+        # Add common prefixes as folders
+        try:
+            result = self.storage.list_objects(
+                prefix=None,
+                delimiter="/"
+            )
+
+            # Add prefixes as folders
+            for prefix in result.get("prefixes", []):
+                if prefix != self.current_prefix:
+                    prefix_name = prefix.rstrip('/')
+                    if '/' in prefix_name:
+                        prefix_name = prefix_name.split('/')[-1]
+                    bucket_node.add(prefix_name, data={"prefix": prefix})
+
+        except Exception as e:
+            self.notify(f"Error loading prefixes: {e}", severity="error")
 
     def load_config(self) -> None:
         """Load configuration and initialize S3 storage."""
@@ -250,8 +355,10 @@ class S3BrowserApp(App):
         table = self.query_one(DataTable)
         table.clear()
 
-        # Use the stored values for prefix and recursive mode
-        # since we no longer have UI elements for them
+        # Update info bar with current location
+        info_bar = self.query_one("#info-bar", Static)
+        bucket_name = self.config['s3']['bucket']
+        info_bar.update(f"S3 Browser - {bucket_name}/{self.current_prefix}")
 
         # Reset selection
         self.selected_rows = set()
@@ -268,7 +375,7 @@ class S3BrowserApp(App):
             # Add prefixes (folders) if not recursive
             if result["prefixes"] and not self.recursive:
                 for prefix in result["prefixes"]:
-                    table.add_row("□", "📁", prefix, "", "", "", key=f"prefix:{prefix}")
+                    table.add_row(f"📁 {prefix}", "", "", "", key=f"prefix:{prefix}")
 
             # Add objects
             filtered_objects = []
@@ -299,9 +406,7 @@ class S3BrowserApp(App):
                 )
 
                 table.add_row(
-                    "□",
-                    "📄",
-                    key_display,
+                    f"📄 {key_display}",
                     obj["size_formatted"],
                     last_modified,
                     obj["url"],
@@ -311,7 +416,7 @@ class S3BrowserApp(App):
             # Update continuation token
             self.continuation_token = result["next_token"]
 
-            # Update footer with stats
+            # Update status bar with stats
             stats_text = (
                 f"Objects: {len(filtered_objects)}/{len(result['objects'])}"
                 + (
@@ -321,45 +426,80 @@ class S3BrowserApp(App):
                 )
             )
 
-            # Show pagination info in footer
+            # Show pagination info in status bar
             if result["is_truncated"]:
                 stats_text += " (More results available, press 'n' for next page)"
 
-            # Show filter status in footer
+            # Show filter status in status bar
+            status_bar = self.query_one("#status-bar", Static)
             if self.filter_text:
-                self.sub_title = f"Filter: '{self.filter_text}' | {stats_text}"
+                status_bar.update(f"Filter: '{self.filter_text}' | {stats_text}")
             else:
-                self.sub_title = stats_text
+                status_bar.update(stats_text)
 
         except Exception as e:
-            self.notify(f"Error: {e}", severity="error")
-
+            self.notify(f"Error loading data: {e}", severity="error")
         finally:
             loading.display = False
 
-    # Removed button and input handlers since we removed those UI elements
+    def _update_object_details(self, obj_key: Optional[str] = None) -> None:
+        """Update the object details panel with information about the selected object."""
+        details_panel = self.query_one("#object-details", Static)
 
-    @on(DataTable.RowSelected)
+        if not obj_key:
+            details_panel.update("No object selected")
+            return
+
+        try:
+            # Get object details from S3
+            obj_info = self.storage.get_object_info(obj_key)
+            if not obj_info:
+                details_panel.update(f"Object not found: {obj_key}")
+                return
+
+            # Format the details
+            details = f"""# Object Details
+
+            **Key:** {obj_info['key']}
+            **Size:** {obj_info['size_formatted']}
+            **Last Modified:** {obj_info['last_modified'].strftime('%Y-%m-%d %H:%M:%S') if obj_info['last_modified'] else 'N/A'}
+            **ETag:** {obj_info.get('etag', 'N/A')}
+            **Content Type:** {obj_info.get('content_type', 'N/A')}
+
+            [View in Browser]({obj_info['url']})"""
+
+            details_panel.update(details)
+
+        except Exception as e:
+            details_panel.update(f"Error loading object details: {e}")
+            self.notify(f"Error: {e}", severity="error")
     def on_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection."""
-        table = self.query_one(DataTable)
         row_key = event.row_key.value
 
-        # Toggle selection
+        # Toggle selection in our tracking set
         if row_key in self.selected_rows:
             self.selected_rows.remove(row_key)
-            table.update_cell(row_key, 0, "□")
         else:
             self.selected_rows.add(row_key)
-            table.update_cell(row_key, 0, "☑")
+
+        # Update object details panel if it's an object (not a prefix)
+        if row_key.startswith("object:"):
+            obj_key = row_key.split(":", 1)[1]
+            self._update_object_details(obj_key)
+        elif row_key.startswith("prefix:"):
+            # If it's a prefix, show folder info
+            prefix = row_key.split(":", 1)[1]
+            details_panel = self.query_one("#object-details", Static)
+            details_panel.update(f"# Folder: {prefix}\n\nSelect an object to view its details.")
 
     @on(DataTable.CellSelected)
     def on_cell_selected(self, event: DataTable.CellSelected) -> None:
-        """Handle cell selection."""
-        # If it's a prefix cell, navigate to that prefix
-        row_key = event.cell_key.row_key
+        """Handle cell selection for navigation."""
+        # If it's a prefix row, navigate to that prefix
+        row_key = event.cell_key.row_key.value
         if str(row_key).startswith("prefix:"):
-            prefix = str(row_key)[7:]  # Remove "prefix:" prefix
+            prefix = row_key.split(":", 1)[1]
             # Update the current prefix directly
             self.current_prefix = prefix
             self.continuation_token = None
@@ -422,11 +562,12 @@ class S3BrowserApp(App):
         """Apply the filter to the objects list."""
         self.filter_text = filter_text
 
-        # Update status display
+        # Update status display in the status bar
+        status_bar = self.query_one("#status-bar", Static)
         if filter_text:
-            self.sub_title = f"Filter: {filter_text}"
+            status_bar.update(f"Filter: '{filter_text}'")
         else:
-            self.sub_title = ""
+            status_bar.update("")
 
         # Refresh the data with the filter
         self.load_data()
