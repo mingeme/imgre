@@ -19,8 +19,6 @@ from imgre.ui import run_ui
 def cli():
     """
     imgre - Image Optimization and S3 Management Tool
-
-    A Python port of the imgood project.
     """
     pass
 

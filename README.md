@@ -1,6 +1,6 @@
 # imgre - Image Optimization and S3 Management Tool
 
-A Python port of the [imgood](https://github.com/mingeme/imgood) project, providing a powerful command-line tool for image optimization, format conversion, and S3 object management.
+A powerful command-line tool for image optimization, format conversion, and S3 object management.
 
 ## Features
 

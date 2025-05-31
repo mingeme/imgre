@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "imgre"
 version = "0.1.0"
-description = "Image Optimization and S3 Management Tool (Python port of imgood)"
+description = "Image Optimization and S3 Management Tool"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
