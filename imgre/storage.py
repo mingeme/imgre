@@ -8,11 +8,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Union
 
 import boto3
-import pyvips
 from botocore.exceptions import ClientError
 from mypy_boto3_s3.client import S3Client
-
-from imgre.image import ImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -214,71 +211,7 @@ class S3Storage:
             logger.error(f"Error downloading object from S3: {e}")
             raise
 
-    def copy_with_transform(
-        self,
-        source_key: str,
-        target_key: Optional[str] = None,
-        format: Optional[str] = None,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
-        quality: Optional[int] = None,
-        resize_mode: Optional[str] = None,
-    ) -> str:
-        """
-        Copy an object with transformation (format conversion, resizing).
-
-        Args:
-            source_key: Source object key
-            target_key: Target object key, defaults to source-copy
-            format: Output format (webp, jpeg, png)
-            width: Target width
-            height: Target height
-            quality: Output quality (1-100)
-            resize_mode: Resize mode (fit, fill, exact)
-
-        Returns:
-            URL of the copied and transformed object
-        """
-        # Set default target key if not provided
-        if not target_key:
-            source_path = Path(source_key)
-            target_key = f"{source_path.stem}-copy{source_path.suffix}"
-
-        # Set default format from config if not provided
-        if not format:
-            format = self.config["image"]["format"]
-
-        # Set default quality from config if not provided
-        if not quality:
-            quality = self.config["image"]["quality"]
-
-        # Set default resize mode from config if not provided
-        if not resize_mode:
-            resize_mode = self.config["image"]["resize_mode"]
-
-        # Download source object
-        source_data = self.download_object(source_key)
-
-        # Use pyvips to load from memory buffer
-        img = pyvips.Image.new_from_buffer(source_data, "")
-        processed_data = ImageProcessor.process_image(
-            img=img,
-            width=width,
-            height=height,
-            format=format,
-            quality=quality,
-            resize_mode=resize_mode,
-        )
-
-        # Update target key extension if format is different
-        if format:
-            target_path = Path(target_key)
-            if target_path.suffix.lower() != f".{format.lower()}":
-                target_key = f"{target_path.stem}.{format.lower()}"
-
-        # Upload processed image
-        content_type = ImageProcessor.get_content_type(format)
-        return self.upload_bytes(processed_data, target_key, content_type=content_type)
+    # The copy_with_transform method has been moved to the copy.py command file
 
     def delete_object(self, object_key: str) -> None:
         """

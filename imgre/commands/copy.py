@@ -3,11 +3,14 @@ Copy command for imgre CLI.
 """
 
 import sys
+from pathlib import Path
 from typing import Optional
 
 import click
+import pyvips
 
 from imgre.config import load_config, validate_config
+from imgre.image import ImageProcessor
 from imgre.storage import S3Storage
 
 
@@ -58,21 +61,51 @@ def copy(
     if not output_format:
         output_format = config["image"]["format"]
 
+    if not output_format:
+        click.echo("Error: Output format not specified", err=True)
+        sys.exit(1)
+
     # Set default quality from config if not provided
     if quality is None:
         quality = config["image"]["quality"]
 
     try:
-        # Perform copy with transformation
-        url = storage.copy_with_transform(
-            source_key=source_key,
-            target_key=target_key,
-            format=output_format,
+        # Set default target key if not provided
+        if not target_key:
+            source_path = Path(source_key)
+            target_key = f"{source_path.stem}.{output_format.lower()}"
+
+        if target_key == source_key:
+            click.echo("Error: Target key is the same as source key", err=True)
+            sys.exit(1)
+
+        # Download source object
+        source_data = storage.download_object(source_key)
+
+        # Use pyvips to load from memory buffer
+        img = pyvips.Image.new_from_buffer(source_data, "")
+        click.echo(f"Original image: {img.width}x{img.height}, {len(source_data)} bytes")
+
+        # Process the image
+        processed_data = ImageProcessor.process_image(
+            img=img,
             width=width,
             height=height,
+            format=output_format,
             quality=quality,
             resize_mode=config["image"]["resize_mode"],
         )
+        click.echo(f"Processed image: {len(processed_data)} bytes ({len(processed_data) / len(source_data) * 100:.2f}% of original)")
+
+        # Update target key extension if format is different
+        if output_format:
+            target_path = Path(target_key)
+            if target_path.suffix.lower() != f".{output_format.lower()}":
+                target_key = f"{target_path.stem}.{output_format.lower()}"
+
+        # Upload processed image
+        content_type = ImageProcessor.get_content_type(output_format)
+        url = storage.upload_bytes(processed_data, target_key, content_type=content_type)
 
         click.echo(f"Copied and transformed object to: {url}")
 
