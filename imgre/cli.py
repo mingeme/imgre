@@ -3,6 +3,7 @@ Command-line interface for imgre.
 """
 
 import sys
+from typing import Optional
 
 import fire
 
@@ -19,13 +20,13 @@ class ImgreCLI:
 
     def up(
         self,
-        input_path,
-        key=None,
-        compress=False,
-        quality=None,
-        width=None,
-        height=None,
-        format=None,
+        input_path: str,
+        key: Optional[str] = None,
+        compress: bool = False,
+        quality: Optional[int] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        format: Optional[str] = None,
     ):
         """Upload images to S3 with optional compression and format conversion.
 
@@ -45,7 +46,13 @@ class ImgreCLI:
         )
 
     def cp(
-        self, source, target=None, format=None, quality=None, width=None, height=None
+        self,
+        source: str,
+        target: Optional[str] = None,
+        format: Optional[str] = None,
+        quality: Optional[int] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
     ):
         """Copy objects within S3 with optional format conversion and resizing.
 
@@ -63,12 +70,12 @@ class ImgreCLI:
 
     def ls(
         self,
-        prefix=None,
-        delimiter="/",
-        max_keys=1000,
-        token=None,
-        url=False,
-        recursive=True,
+        prefix: Optional[str] = None,
+        delimiter: str = "/",
+        max_keys: int = 1000,
+        token: Optional[str] = None,
+        url: bool = False,
+        recursive: bool = True,
     ):
         """List objects in the S3 bucket.
 
@@ -84,16 +91,20 @@ class ImgreCLI:
 
         return ListCommand()(prefix, delimiter, max_keys, token, url, recursive)
 
-    def rm(self, object_key, force=False):
-        """Delete an object from S3 by its key.
+    def rm(self, *object_keys: str, force: bool = False):
+        """Delete one or more objects from S3 by their keys.
 
         Args:
-            object_key: The full path/key of the object to delete
+            *object_keys: One or more object keys to delete
             force: Skip confirmation prompt if True
         """
         from imgre.commands.remove import RemoveCommand
 
-        return RemoveCommand()(object_key, force)
+        if not object_keys:
+            print("Error: No object keys provided", file=sys.stderr)
+            sys.exit(1)
+
+        return RemoveCommand()(*object_keys, force=force)
 
     def ui(self):
         """Launch the S3 browser UI.

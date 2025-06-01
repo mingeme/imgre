@@ -273,6 +273,20 @@ class S3Storage:
                 size_mb = obj.get("Size", 0) / (1024 * 1024)
                 last_modified = obj.get("LastModified")
 
+                # Convert to local timezone if timestamp exists
+                if last_modified:
+                    try:
+                        # AWS returns UTC time, convert to local timezone
+                        from datetime import timezone
+
+                        # Apply the offset to the UTC timestamp - this automatically uses the local timezone
+                        last_modified = last_modified.replace(
+                            tzinfo=timezone.utc
+                        ).astimezone()
+                    except Exception:
+                        # Keep original if conversion fails
+                        pass
+
                 result["objects"].append(
                     {
                         "key": obj.get("Key"),

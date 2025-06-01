@@ -67,11 +67,15 @@ class ListCommand:
             # Display objects
             if result["objects"]:
                 for obj in result["objects"]:
-                    last_modified = (
-                        obj["last_modified"].strftime("%Y-%m-%d %H:%M:%S")
-                        if obj["last_modified"]
-                        else "N/A"
-                    )
+                    # Format timestamp with local timezone
+                    last_modified = "N/A"
+                    if obj["last_modified"]:
+                        # Get timezone name from the datetime object
+                        tz_name = obj["last_modified"].tzname() or "UTC"
+                        last_modified = obj["last_modified"].strftime(
+                            f"%Y-%m-%d %H:%M:%S ({tz_name})"
+                        )
+
                     key_display = obj["key"]
 
                     # If using delimiter, show only the last part of the key for better readability

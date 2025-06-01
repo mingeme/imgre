@@ -240,7 +240,7 @@ imgre ls --url
 
 ### Remove Command (`rm`)
 
-Delete an object from S3 by its key.
+Delete one or more objects from S3 by their keys.
 
 ```bash
 imgre rm [options]
@@ -248,21 +248,27 @@ imgre rm [options]
 
 #### Remove Options
 
-* `object_key`: The full path/key of the object to delete (required)
+* `object_keys`: One or more object keys to delete (required)
 * `--force`: Skip confirmation prompt if True
 
 #### Remove Command Examples
 
-Delete an object (will prompt for confirmation):
+Delete a single object (will prompt for confirmation):
 
 ```bash
 imgre rm images/example.jpg
 ```
 
-Delete an object without confirmation:
+Delete multiple objects (will prompt for confirmation with a list of objects):
 
 ```bash
-imgre rm images/example.jpg --force
+imgre rm images/example1.jpg images/example2.jpg images/example3.jpg
+```
+
+Delete objects without confirmation:
+
+```bash
+imgre rm images/example1.jpg images/example2.jpg --force
 ```
 
 ### UI Command (`ui`)
