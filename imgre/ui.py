@@ -8,8 +8,13 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import (
-    DataTable, Footer, Button, Static, Input,
-    LoadingIndicator, Tree
+    DataTable,
+    Footer,
+    Button,
+    Static,
+    Input,
+    LoadingIndicator,
+    Tree,
 )
 from textual.screen import Screen, ModalScreen
 from textual.binding import Binding
@@ -295,11 +300,11 @@ class S3BrowserApp(App):
             return
 
         bucket_tree = self.query_one("#bucket-tree", Tree)
-        bucket_node = bucket_tree.root.add(self.config['s3']['bucket'], expand=True)
+        bucket_node = bucket_tree.root.add(self.config["s3"]["bucket"], expand=True)
 
         # Add a node for the current prefix if it's not empty
         if self.current_prefix:
-            prefix_parts = self.current_prefix.strip('/').split('/')
+            prefix_parts = self.current_prefix.strip("/").split("/")
             current_node = bucket_node
 
             # Build the prefix tree
@@ -313,17 +318,14 @@ class S3BrowserApp(App):
 
         # Add common prefixes as folders
         try:
-            result = self.storage.list_objects(
-                prefix=None,
-                delimiter="/"
-            )
+            result = self.storage.list_objects(prefix=None, delimiter="/")
 
             # Add prefixes as folders
             for prefix in result.get("prefixes", []):
                 if prefix != self.current_prefix:
-                    prefix_name = prefix.rstrip('/')
-                    if '/' in prefix_name:
-                        prefix_name = prefix_name.split('/')[-1]
+                    prefix_name = prefix.rstrip("/")
+                    if "/" in prefix_name:
+                        prefix_name = prefix_name.split("/")[-1]
                     bucket_node.add(prefix_name, data={"prefix": prefix})
 
         except Exception as e:
@@ -357,7 +359,7 @@ class S3BrowserApp(App):
 
         # Update info bar with current location
         info_bar = self.query_one("#info-bar", Static)
-        bucket_name = self.config['s3']['bucket']
+        bucket_name = self.config["s3"]["bucket"]
         info_bar.update(f"S3 Browser - {bucket_name}/{self.current_prefix}")
 
         # Reset selection
@@ -460,19 +462,20 @@ class S3BrowserApp(App):
             # Format the details
             details = f"""# Object Details
 
-            **Key:** {obj_info['key']}
-            **Size:** {obj_info['size_formatted']}
-            **Last Modified:** {obj_info['last_modified'].strftime('%Y-%m-%d %H:%M:%S') if obj_info['last_modified'] else 'N/A'}
-            **ETag:** {obj_info.get('etag', 'N/A')}
-            **Content Type:** {obj_info.get('content_type', 'N/A')}
+            **Key:** {obj_info["key"]}
+            **Size:** {obj_info["size_formatted"]}
+            **Last Modified:** {obj_info["last_modified"].strftime("%Y-%m-%d %H:%M:%S") if obj_info["last_modified"] else "N/A"}
+            **ETag:** {obj_info.get("etag", "N/A")}
+            **Content Type:** {obj_info.get("content_type", "N/A")}
 
-            [View in Browser]({obj_info['url']})"""
+            [View in Browser]({obj_info["url"]})"""
 
             details_panel.update(details)
 
         except Exception as e:
             details_panel.update(f"Error loading object details: {e}")
             self.notify(f"Error: {e}", severity="error")
+
     def on_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection."""
         row_key = event.row_key.value
@@ -491,7 +494,9 @@ class S3BrowserApp(App):
             # If it's a prefix, show folder info
             prefix = row_key.split(":", 1)[1]
             details_panel = self.query_one("#object-details", Static)
-            details_panel.update(f"# Folder: {prefix}\n\nSelect an object to view its details.")
+            details_panel.update(
+                f"# Folder: {prefix}\n\nSelect an object to view its details."
+            )
 
     @on(DataTable.CellSelected)
     def on_cell_selected(self, event: DataTable.CellSelected) -> None:
