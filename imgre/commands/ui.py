@@ -4,20 +4,20 @@ UI command for imgre CLI.
 
 import sys
 
-import click
-
 from imgre.ui import run_ui
 
 
-@click.command("ui")
-def ui():
-    """
-    Launch the S3 browser UI.
+class UICommand:
+    """Launch the S3 browser UI."""
 
-    Interactive TUI for browsing and managing S3 objects.
-    """
-    try:
-        run_ui()
-    except Exception as e:
-        click.echo(f"Error launching UI: {e}", err=True)
-        sys.exit(1)
+    def __call__(self):
+        """
+        Launch the S3 browser UI.
+
+        Interactive TUI for browsing and managing S3 objects.
+        """
+        try:
+            run_ui()
+        except Exception as e:
+            print(f"Error launching UI: {e}", file=sys.stderr)
+            sys.exit(1)

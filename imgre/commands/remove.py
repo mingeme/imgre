@@ -4,43 +4,48 @@ Remove command for imgre CLI.
 
 import sys
 
-import click
-
 from imgre.config import load_config, validate_config
 from imgre.storage import S3Storage
 
 
-@click.command("rm")
-@click.argument("object_key", required=True)
-@click.option("-f", "--force", is_flag=True, help="Skip confirmation prompt")
-def remove(object_key: str, force: bool = False):
-    """
-    Delete an object from S3 by its key.
+class RemoveCommand:
+    """Delete an object from S3 by its key."""
 
-    OBJECT_KEY is the full path/key of the object to delete.
-    """
-    # Load and validate configuration
-    config = load_config()
-    error = validate_config(config)
-    if error:
-        click.echo(f"Configuration error: {error}", err=True)
-        sys.exit(1)
+    def __call__(self, object_key: str, force: bool = False):
+        """
+        Delete an object from S3 by its key.
 
-    # Create S3 storage handler
-    storage = S3Storage(config)
+        Args:
+            object_key: The full path/key of the object to delete
+            force: Skip confirmation prompt if True
+        """
+        # Load and validate configuration
+        config = load_config()
+        error = validate_config(config)
+        if error:
+            print(f"Configuration error: {error}", file=sys.stderr)
+            sys.exit(1)
 
-    try:
-        # Confirm deletion unless force flag is used
-        if not force:
-            confirm = click.confirm(f"Are you sure you want to delete '{object_key}'?")
-            if not confirm:
-                click.echo("Deletion cancelled.")
-                return
+        # Create S3 storage handler
+        storage = S3Storage(config)
 
-        # Delete the object
-        storage.delete_object(object_key)
-        click.echo(f"Deleted object: {object_key}")
+        try:
+            # Confirm deletion unless force flag is used
+            if not force:
+                confirm = (
+                    input(
+                        f"Are you sure you want to delete '{object_key}'? (y/N): "
+                    ).lower()
+                    == "y"
+                )
+                if not confirm:
+                    print("Deletion cancelled.")
+                    return
 
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
+            # Delete the object
+            storage.delete_object(object_key)
+            print(f"Deleted object: {object_key}")
+
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)

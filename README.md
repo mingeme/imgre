@@ -53,6 +53,19 @@ imgre provides the following commands:
 * `up`: Upload images to S3 with optional compression and format conversion
 * `cp`: Copy objects within S3 with optional format conversion and resizing
 * `ls`: List objects in the S3 bucket with optional filtering and pagination
+* `rm`: Delete objects from S3
+* `ui`: Launch the interactive TUI for browsing and managing S3 objects
+* `version`: Display the current version
+
+The CLI is built with Python Fire, which provides automatic help generation. To see help for any command, use the `--help` flag:
+
+```bash
+# Show general help
+imgre --help
+
+# Show help for a specific command
+imgre ls --help
+```
 
 ## Configuration
 
@@ -117,32 +130,32 @@ imgre up [options]
 
 #### Upload Options
 
-* `-i, --input TEXT`: Path to the input image file (required)
-* `-k, --key TEXT`: S3 object key (path in bucket), defaults to filename
-* `-c, --compress`: Compress image before uploading
-* `-q, --quality INTEGER`: Quality of the compressed image (1-100) (default 80)
-* `-w, --width INTEGER`: Width of the output image (0 for original)
-* `-h, --height INTEGER`: Height of the output image (0 for original)
-* `-f, --format TEXT`: Convert to format (webp, jpeg, png) (default "webp")
+* `input_path`: Path to the input image file (required)
+* `--key`: S3 object key (path in bucket), defaults to filename
+* `--compress`: Compress image before uploading
+* `--quality`: Quality of the compressed image (1-100) (default 80)
+* `--width`: Width of the output image (0 for original)
+* `--height`: Height of the output image (0 for original)
+* `--format`: Convert to format (webp, jpeg, png) (default "webp")
 
 #### Examples
 
 Upload an image with default settings:
 
 ```bash
-imgre up -i sample.jpg
+imgre up sample.jpg
 ```
 
 Upload with compression and custom key:
 
 ```bash
-imgre up -i sample.jpg -k images/2025/05/sample.jpg -c -q 85
+imgre up sample.jpg --key=images/2025/05/sample.jpg --compress --quality=85
 ```
 
 Upload with resizing (converts to WebP format by default):
 
 ```bash
-imgre up -i sample.jpg -c -w 800 -h 600
+imgre up sample.jpg --compress --width=800 --height=600
 ```
 
 ### Copy Command (`cp`)
@@ -155,31 +168,31 @@ imgre cp [options]
 
 #### Copy Options
 
-* `-s, --source TEXT`: Source S3 object key to copy (required)
-* `-t, --target TEXT`: Target S3 object key (destination), defaults to source-copy
-* `-f, --format TEXT`: Convert to format (webp, jpeg, png) (default "webp")
-* `-q, --quality INTEGER`: Quality of the converted image (1-100) (default 80)
-* `-w, --width INTEGER`: Width of the output image (0 for original)
-* `-h, --height INTEGER`: Height of the output image (0 for original)
+* `source`: Source S3 object key to copy (required)
+* `--target`: Target S3 object key (destination), defaults to source-copy
+* `--format`: Convert to format (webp, jpeg, png) (default "webp")
+* `--quality`: Quality of the converted image (1-100) (default 80)
+* `--width`: Width of the output image (0 for original)
+* `--height`: Height of the output image (0 for original)
 
 #### Copy Command Examples
 
 Copy an object with default settings (converts to WebP):
 
 ```bash
-imgre cp -s images/original.jpg
+imgre cp images/original.jpg
 ```
 
 Copy with specific format and target key:
 
 ```bash
-imgre cp -s images/original.jpg -t images/copy.png -f png
+imgre cp images/original.jpg --target=images/copy.png --format=png
 ```
 
 Copy with resizing and quality adjustment:
 
 ```bash
-imgre cp -s images/original.jpg -w 1200 -h 800 -q 90
+imgre cp images/original.jpg --width=1200 --height=800 --quality=90
 ```
 
 ### List Command (`ls`)
@@ -192,10 +205,10 @@ imgre ls [options]
 
 #### List Options
 
-* `-p, --prefix TEXT`: Prefix to filter objects by
-* `-d, --delimiter TEXT`: Character used to group keys (e.g., '/' for folder-like hierarchy)
-* `-m, --max-keys INTEGER`: Maximum number of keys to return (default: 1000)
-* `-t, --token TEXT`: Continuation token for pagination
+* `--prefix`: Prefix to filter objects by
+* `--delimiter`: Character used to group keys (e.g., '/' for folder-like hierarchy) (default: '/')
+* `--max_keys`: Maximum number of keys to return (default: 1000)
+* `--token`: Continuation token for pagination
 * `--url`: Show URLs for objects
 * `--recursive`: List objects recursively (ignores delimiter)
 
@@ -210,19 +223,54 @@ imgre ls
 List objects in a specific "folder":
 
 ```bash
-imgre ls -p images/
+imgre ls --prefix=images/
 ```
 
 List objects recursively with a prefix:
 
 ```bash
-imgre ls -p images/ --recursive
+imgre ls --prefix=images/ --recursive
 ```
 
 Show URLs for objects:
 
 ```bash
 imgre ls --url
+```
+
+### Remove Command (`rm`)
+
+Delete an object from S3 by its key.
+
+```bash
+imgre rm [options]
+```
+
+#### Remove Options
+
+* `object_key`: The full path/key of the object to delete (required)
+* `--force`: Skip confirmation prompt if True
+
+#### Remove Command Examples
+
+Delete an object (will prompt for confirmation):
+
+```bash
+imgre rm images/example.jpg
+```
+
+Delete an object without confirmation:
+
+```bash
+imgre rm images/example.jpg --force
+```
+
+### UI Command (`ui`)
+
+Launch the interactive TUI for browsing and managing S3 objects.
+
+```bash
+imgre ui
 ```
 
 ## URL Format
