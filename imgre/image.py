@@ -3,9 +3,10 @@ Image processing module for imgre.
 Handles image resizing, compression, and format conversion using libvips.
 """
 
-import pyvips
 from pathlib import Path
 from typing import Optional, Union
+
+import pyvips
 
 # Mapping of format names to libvips format strings
 FORMAT_MAP = {
@@ -77,7 +78,6 @@ class ImageProcessor:
                 "optimize_coding": True,  # Optimize Huffman coding tables
                 "strip": True,  # Strip metadata
                 "interlace": True,  # Progressive JPEG
-                "autorot": True,  # Auto-rotate based on EXIF orientation
             }
         elif vips_format == "png":
             save_options = {

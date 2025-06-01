@@ -59,7 +59,7 @@ def upload(
     storage = S3Storage(config)
 
     # Validate input file
-    input_path = Path(input_path)
+    input_path: Path = Path(input_path)
     if not input_path.exists():
         click.echo(f"Input file not found: {input_path}", err=True)
         sys.exit(1)
@@ -77,12 +77,11 @@ def upload(
         output_format = config["image"]["format"]
 
     try:
+        # Print origin image info
+        img = ImageProcessor.open_image(input_path)
+        click.echo(f"Original image: {img.width}x{img.height}, {input_path.stat().st_size} bytes, format: {input_path.suffix}")  # fmt: skip
         # If compression or format conversion is requested
-        if compress or width or height or output_format:
-            click.echo(f"Processing image: {input_path}")
-
-            # Open and process the image
-            img = ImageProcessor.open_image(input_path)
+        if compress:
             processed_data = ImageProcessor.process_image(
                 img=img,
                 width=width,
@@ -91,6 +90,7 @@ def upload(
                 quality=quality,
                 resize_mode=config["image"]["resize_mode"],
             )
+            click.echo(f"Compressed image: {len(processed_data)} bytes ({len(processed_data) / input_path.stat().st_size * 100:.2f}% of original)")  # fmt: skip
 
             # Update object key extension if format is different
             if output_format:
@@ -104,7 +104,7 @@ def upload(
                 processed_data, object_key, content_type=content_type
             )
 
-            click.echo(f"Processed and uploaded image to: {url}")
+            click.echo(f"Uploaded image to: {url}")
         else:
             # Direct upload without processing
             url = storage.upload_file(input_path, object_key)
