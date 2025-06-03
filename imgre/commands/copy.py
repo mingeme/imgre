@@ -97,9 +97,7 @@ class CopyCommand:
 
             # Upload processed image
             content_type = ImageProcessor.get_content_type(output_format)
-            url = storage.upload_bytes(
-                processed_data, target_key, content_type=content_type
-            )
+            url = storage.upload_bytes(processed_data, target_key, content_type=content_type)
 
             print(f"Copied and transformed object to: {url}")
 

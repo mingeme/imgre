@@ -90,9 +90,7 @@ class ConfirmDeleteScreen(Screen):
     def compose(self) -> ComposeResult:
         """Compose the confirmation screen."""
         with Container(id="confirm-dialog"):
-            yield Static(
-                f"Delete {len(self.object_keys)} object(s)?", id="confirm-title"
-            )
+            yield Static(f"Delete {len(self.object_keys)} object(s)?", id="confirm-title")
             for key in self.object_keys[:5]:  # Show first 5 objects
                 yield Static(f"• {key}")
 
@@ -383,10 +381,7 @@ class S3BrowserApp(App):
             filtered_objects = []
             for obj in result["objects"]:
                 # Apply filter if set
-                if (
-                    self.filter_text
-                    and self.filter_text.lower() not in obj["key"].lower()
-                ):
+                if self.filter_text and self.filter_text.lower() not in obj["key"].lower():
                     continue
 
                 filtered_objects.append(obj)
@@ -401,11 +396,7 @@ class S3BrowserApp(App):
                         key_display = obj["key"]
 
                 # Format last modified
-                last_modified = (
-                    obj["last_modified"].strftime("%Y-%m-%d %H:%M:%S")
-                    if obj["last_modified"]
-                    else "N/A"
-                )
+                last_modified = obj["last_modified"].strftime("%Y-%m-%d %H:%M:%S") if obj["last_modified"] else "N/A"
 
                 table.add_row(
                     f"📄 {key_display}",
@@ -419,13 +410,8 @@ class S3BrowserApp(App):
             self.continuation_token = result["next_token"]
 
             # Update status bar with stats
-            stats_text = (
-                f"Objects: {len(filtered_objects)}/{len(result['objects'])}"
-                + (
-                    f", Prefixes: {len(result['prefixes'])}"
-                    if not self.recursive
-                    else ""
-                )
+            stats_text = f"Objects: {len(filtered_objects)}/{len(result['objects'])}" + (
+                f", Prefixes: {len(result['prefixes'])}" if not self.recursive else ""
             )
 
             # Show pagination info in status bar
@@ -494,9 +480,7 @@ class S3BrowserApp(App):
             # If it's a prefix, show folder info
             prefix = row_key.split(":", 1)[1]
             details_panel = self.query_one("#object-details", Static)
-            details_panel.update(
-                f"# Folder: {prefix}\n\nSelect an object to view its details."
-            )
+            details_panel.update(f"# Folder: {prefix}\n\nSelect an object to view its details.")
 
     @on(DataTable.CellSelected)
     def on_cell_selected(self, event: DataTable.CellSelected) -> None:

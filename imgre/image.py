@@ -135,9 +135,7 @@ class ImageProcessor:
         # Resize based on the specified mode
         if vips_resize_mode == "force":  # exact
             # Resize to exact dimensions (may distort)
-            return img.resize(
-                width / orig_width, height=height, vscale=height / orig_height
-            )
+            return img.resize(width / orig_width, height=height, vscale=height / orig_height)
 
         elif vips_resize_mode == "cover":  # fill
             # Resize to fill dimensions (may crop)

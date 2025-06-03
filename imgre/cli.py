@@ -41,9 +41,7 @@ class ImgreCLI:
         """
         from imgre.commands.upload import UploadCommand
 
-        return UploadCommand()(
-            input_path, key, compress, quality, width, height, format
-        )
+        return UploadCommand()(input_path, key, compress, quality, width, height, format)
 
     def cp(
         self,

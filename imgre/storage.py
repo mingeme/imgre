@@ -280,9 +280,7 @@ class S3Storage:
                         from datetime import timezone
 
                         # Apply the offset to the UTC timestamp - this automatically uses the local timezone
-                        last_modified = last_modified.replace(
-                            tzinfo=timezone.utc
-                        ).astimezone()
+                        last_modified = last_modified.replace(tzinfo=timezone.utc).astimezone()
                     except Exception:
                         # Keep original if conversion fails
                         pass

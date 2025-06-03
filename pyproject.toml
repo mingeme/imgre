@@ -27,3 +27,6 @@ imgre = "imgre.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["imgre"]
+
+[tool.ruff]
+line-length = 120

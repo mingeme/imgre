@@ -105,11 +105,7 @@ def load_config() -> Dict[str, Any]:
     if not config["s3"]["secret_key"]:
         config["s3"]["secret_key"] = os.environ.get("AWS_SECRET_ACCESS_KEY")
     if not config["s3"]["region"]:
-        config["s3"]["region"] = (
-            os.environ.get("AWS_REGION")
-            or os.environ.get("AWS_DEFAULT_REGION")
-            or "us-east-1"
-        )
+        config["s3"]["region"] = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-east-1"
 
     return config
 

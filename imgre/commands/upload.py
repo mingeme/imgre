@@ -86,9 +86,7 @@ class UploadCommand:
 
                 # Upload processed image
                 content_type = ImageProcessor.get_content_type(output_format)
-                url = storage.upload_bytes(
-                    processed_data, object_key, content_type=content_type
-                )
+                url = storage.upload_bytes(processed_data, object_key, content_type=content_type)
 
                 print(f"Uploaded image to: {url}")
             else:

@@ -72,9 +72,7 @@ class ListCommand:
                     if obj["last_modified"]:
                         # Get timezone name from the datetime object
                         tz_name = obj["last_modified"].tzname() or "UTC"
-                        last_modified = obj["last_modified"].strftime(
-                            f"%Y-%m-%d %H:%M:%S ({tz_name})"
-                        )
+                        last_modified = obj["last_modified"].strftime(f"%Y-%m-%d %H:%M:%S ({tz_name})")
 
                     key_display = obj["key"]
 
@@ -87,9 +85,7 @@ class ListCommand:
                             key_display = obj["key"]
 
                     # Format the output
-                    line = (
-                        f"  📄 {key_display} ({obj['size_formatted']}, {last_modified})"
-                    )
+                    line = f"  📄 {key_display} ({obj['size_formatted']}, {last_modified})"
 
                     # Add URL if requested
                     if url:
